@@ -117,7 +117,7 @@ jobs:
       image-name: ${{ inputs.image-name }}
       version: ${{ needs.build-and-push.outputs.version }}
       namespace: 'default'
-      k8s-manifest: ${{ inputs.manifest-files-path-root }}
+      manifest-files-path-root: ${{ inputs.manifest-files-path-root }}
     secrets:
       DOCKER_HOST: ${{ secrets.DOCKER_HOST }}
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
