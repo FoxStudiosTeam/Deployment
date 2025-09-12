@@ -82,7 +82,7 @@ jobs:
       - name: Calculate env hash for restart trigger
         id: envhash
         run: |
-          echo "env_hash=$(sha256sum .env | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          echo "env_hash=$(sha256sum ${{ inputs.manifest-files-path-root }}/.env | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
 
       - name: Patch deployment with env hash to trigger rollout
         run: |
