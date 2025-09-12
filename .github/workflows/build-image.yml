@@ -27,6 +27,8 @@ on:
         required: true
       KUBECONFIG:
         required: true
+      SSH_KEY:
+        required: true
 
 jobs:
   check-image:
@@ -78,11 +80,16 @@ jobs:
       - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.RUST_SSH_KEY }}" > ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan github.com >> ~/.ssh/known_hosts
         env:
-          SSH_PRIVATE_KEY: ${{ secrets.RUST_SSH_KEY }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_KEY }}
+      
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -101,6 +108,7 @@ jobs:
           context: ${{ inputs.context }}
           file: ${{ inputs.workdir }}/Dockerfile
           push: true
+          ssh: default
           tags: |
             ${{ secrets.DOCKER_HOST}}/${{ inputs.image-name }}:v${{ needs.check-image.outputs.version }}
             ${{ secrets.DOCKER_HOST}}/${{ inputs.image-name }}:latest
