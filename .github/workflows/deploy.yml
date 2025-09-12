@@ -75,7 +75,7 @@ jobs:
       - name: Apply ConfigMap from .env
         run: |
           kubectl create configmap ${{ inputs.service-name }}-config \
-            --from-env-file=.env \
+            --from-env-file=${{ inputs.manifest-files-path-root }}/.env \
             --namespace=${{ inputs.namespace }} \
             --dry-run=client -o yaml | kubectl apply -f -
 
