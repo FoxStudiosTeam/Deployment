@@ -104,7 +104,7 @@ jobs:
   
   deploy-to-k8s:
     needs: build-and-push
-    if: github.ref == 'refs/heads/Secrets' || github.event.pull_request.base.ref == 'Secrets'
+    if: github.ref == 'refs/heads/main' || github.event.pull_request.base.ref == 'main'
     uses: ./.github/workflows/deploy.yml
     with:
       image-name: ${{ inputs.image-name }}
