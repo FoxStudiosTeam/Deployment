@@ -9,6 +9,9 @@ on:
       workdir:
         type: string
         required: true
+      context:
+        type: string
+        required: true  
       manifest-files-path-root:
         type: string
         required: true
@@ -95,7 +98,8 @@ jobs:
         id: build-and-push
         uses: docker/build-push-action@v5
         with:
-          context: ${{ inputs.workdir }}
+          context: ${{ inputs.context }}
+          file: ${{ inputs.workdir }}/Dockerfile
           push: true
           tags: |
             ${{ secrets.DOCKER_HOST}}/${{ inputs.image-name }}:v${{ needs.check-image.outputs.version }}
