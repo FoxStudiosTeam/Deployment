@@ -9,6 +9,9 @@ on:
       workdir:
         type: string
         required: true
+      manifest-files-path-root:
+        type: string
+        required: true
     secrets:
       DOCKER_HOST:
         required: true
@@ -41,7 +44,7 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           TAG=v$VERSION
-          IMAGE=microservices-grpc/frontendmodule
+          IMAGE=${{ inputs.image-name }}
           REGISTRY=${{ secrets.DOCKER_HOST }}
           
           echo "Logging into Docker registry $REGISTRY"
@@ -110,7 +113,7 @@ jobs:
       image-name: ${{ inputs.image-name }}
       version: ${{ needs.build-and-push.outputs.version }}
       namespace: 'default'
-      k8s-manifest: './Deployment/frontend/deploymentFront.yaml'
+      k8s-manifest: ${{ inputs.manifest-files-path-root }}
     secrets:
       DOCKER_HOST: ${{ secrets.DOCKER_HOST }}
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}

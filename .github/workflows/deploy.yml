@@ -12,7 +12,7 @@ on:
       namespace:
         type: string
         default: 'default'
-      k8s-manifest:
+      manifest-files-path-root:
         type: string
         required: true
     secrets:
@@ -73,25 +73,29 @@ jobs:
         run: |
           kubectl describe secret registry-secret --namespace=${{ inputs.namespace }}
 
-      - name: Update image version in deployment
+      - name: Update image version in deployment manifests
         run: |
           FULL_IMAGE_TAG="${{ secrets.DOCKER_HOST }}/${{ inputs.image-name }}:latest"
           echo "Updating image to: $FULL_IMAGE_TAG"
-          if [ -f "${{ inputs.k8s-manifest }}" ]; then
-            cp "${{ inputs.k8s-manifest }}" "${{ inputs.k8s-manifest }}.backup"
-            sed -i "s|image:.*|image: $FULL_IMAGE_TAG|g" "${{ inputs.k8s-manifest }}"
-            echo "Updated manifest content:"
-            cat "${{ inputs.k8s-manifest }}"
+
+          if [ -d "${{ inputs.manifest-files-path-root }}" ]; then
+            for file in "${{ inputs.manifest-files-path-root }}"/*.yaml; do
+              echo "Processing $file..."
+              cp "$file" "$file.backup"
+              sed -i "s|image:.*|image: $FULL_IMAGE_TAG|g" "$file"
+              echo "Updated manifest content for $file:"
+              cat "$file"
+            done
           else
-            echo "Kubernetes manifest file not found: ${{ inputs.k8s-manifest }}"
+            echo "Kubernetes manifest directory not found: ${{ inputs.manifest-files-path-root }}"
             exit 1
           fi
 
-      - name: Deploy to Kubernetes
+      - name: Deploy all manifests to Kubernetes
         run: |
-          echo "Applying manifest:"
-          cat "${{ inputs.k8s-manifest }}"
-          kubectl apply -f "${{ inputs.k8s-manifest }}" --namespace=${{ inputs.namespace }}
+          echo "Applying manifests from directory: ${{ inputs.manifest-files-path-root }}"
+          kubectl apply -f "${{ inputs.manifest-files-path-root }}" --namespace=${{ inputs.namespace }}
+
 
       - name: Wait for rollout
         run: |
