@@ -15,6 +15,9 @@ on:
       manifest-files-path-root:
         type: string
         required: true
+      service-name:
+        type: string
+        required: true  
     secrets:
       DOCKER_HOST:
         required: true
@@ -55,10 +58,6 @@ jobs:
           kubectl cluster-info
           kubectl get nodes
 
-      - name: Debug - Check current secrets in namespace
-        run: |
-          kubectl get secrets -n ${{ inputs.namespace }}
-
       - name: Create or update registry secret in Kubernetes
         run: |
           kubectl delete secret registry-secret --namespace=${{ inputs.namespace }} --ignore-not-found
@@ -73,41 +72,48 @@ jobs:
         run: |
           kubectl describe secret registry-secret --namespace=${{ inputs.namespace }}
 
-      - name: Update image version in deployment manifests
+      - name: Apply ConfigMap from .env
         run: |
-          FULL_IMAGE_TAG="${{ secrets.DOCKER_HOST }}/${{ inputs.image-name }}:latest"
-          echo "Updating image to: $FULL_IMAGE_TAG"
+          kubectl create configmap ${{ inputs.service-name }}-config \
+            --from-env-file=.env \
+            --namespace=${{ inputs.namespace }} \
+            --dry-run=client -o yaml | kubectl apply -f -
 
-          if [ -d "${{ inputs.manifest-files-path-root }}" ]; then
-            for file in "${{ inputs.manifest-files-path-root }}"/*.yaml; do
-              echo "Processing $file..."
-              cp "$file" "$file.backup"
-              sed -i "s|image:.*|image: $FULL_IMAGE_TAG|g" "$file"
-              echo "Updated manifest content for $file:"
-              cat "$file"
-            done
-          else
-            echo "Kubernetes manifest directory not found: ${{ inputs.manifest-files-path-root }}"
-            exit 1
-          fi
+      - name: Calculate env hash for restart trigger
+        id: envhash
+        run: |
+          echo "env_hash=$(sha256sum .env | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Patch deployment with env hash to trigger rollout
+        run: |
+          kubectl patch deployment ${{ inputs.service-name }}-deployment \
+            --namespace=${{ inputs.namespace }} \
+            --type='strategic' \
+            --patch "$(cat <<EOF
+            spec:
+              template:
+                metadata:
+                  annotations:
+                    configmap-hash: "${{ steps.envhash.outputs.env_hash }}"
+            EOF
+            )"
 
       - name: Deploy all manifests to Kubernetes
         run: |
           echo "Applying manifests from directory: ${{ inputs.manifest-files-path-root }}"
           kubectl apply -f "${{ inputs.manifest-files-path-root }}" --namespace=${{ inputs.namespace }}
 
-
       - name: Wait for rollout
         run: |
           sleep 10
-          kubectl rollout status deployment/frontend-app-deployment --namespace=${{ inputs.namespace }} --timeout=180s
+          kubectl rollout status deployment/${{ inputs.service-name }}-deployment --namespace=${{ inputs.namespace }} --timeout=180s
 
       - name: Debug - Check pod events and status
         run: |
           echo "=== Pods status ==="
-          kubectl get pods --namespace=${{ inputs.namespace }} -l app=frontend-app
+          kubectl get pods --namespace=${{ inputs.namespace }} -l app=${{ inputs.service-name }}-app
           echo "=== Pods details ==="
-          kubectl describe pods --namespace=${{ inputs.namespace }} -l app=frontend-app
+          kubectl describe pods --namespace=${{ inputs.namespace }} -l app=${{ inputs.service-name }}-app
 
       - name: Verify deployment
         run: |

@@ -12,6 +12,9 @@ on:
       manifest-files-path-root:
         type: string
         required: true
+      service-name:
+        type: string
+        required: true  
     secrets:
       DOCKER_HOST:
         required: true
@@ -110,6 +113,7 @@ jobs:
     if: github.ref == 'refs/heads/main' || github.event.pull_request.base.ref == 'main'
     uses: ./.github/workflows/deploy.yml
     with:
+      service-name: ${{ inputs.service-name }}
       image-name: ${{ inputs.image-name }}
       version: ${{ needs.build-and-push.outputs.version }}
       namespace: 'default'
