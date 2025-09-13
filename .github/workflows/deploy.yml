@@ -84,20 +84,6 @@ jobs:
         run: |
           echo "env_hash=$(sha256sum ${{ inputs.manifest-files-path-root }}/.env | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
 
-      - name: Patch deployment with env hash to trigger rollout
-        run: |
-          kubectl patch deployment ${{ inputs.service-name }}-deployment \
-            --namespace=${{ inputs.namespace }} \
-            --type='strategic' \
-            --patch "$(cat <<EOF
-              spec:
-                template:
-                  metadata:
-                    annotations:
-                      configmap-hash: \"${{ steps.envhash.outputs.env_hash }}\"
-              EOF
-              )"
-
       - name: Deploy all manifests to Kubernetes
         run: |
           echo "Applying manifests from directory: ${{ inputs.manifest-files-path-root }}"
