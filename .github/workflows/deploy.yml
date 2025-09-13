@@ -86,15 +86,17 @@ jobs:
 
       - name: Patch deployment with env hash to trigger rollout
         run: |
-          cat <<EOF | kubectl patch deployment ${{ inputs.service-name }}-deployment \
+          kubectl patch deployment ${{ inputs.service-name }}-deployment \
             --namespace=${{ inputs.namespace }} \
-            --type='strategic' --patch-file=-
-          spec:
-            template:
-              metadata:
-                annotations:
-                  configmap-hash: "${{ steps.envhash.outputs.env_hash }}"
-          EOF
+            --type='strategic' \
+            --patch "$(cat <<EOF
+              spec:
+                template:
+                  metadata:
+                    annotations:
+                      configmap-hash: \"${{ steps.envhash.outputs.env_hash }}\"
+              EOF
+              )"
 
       - name: Deploy all manifests to Kubernetes
         run: |
