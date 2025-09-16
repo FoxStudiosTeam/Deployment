@@ -30,7 +30,7 @@ on:
 
 jobs:
   deploy-to-k8s:
-    runs-on: ubuntu-22.04
+    runs-on: self-hosted
     environment: production
 
     steps:
