@@ -126,11 +126,6 @@ jobs:
             ${{ secrets.DOCKER_HOST}}/${{ inputs.image-name }}:latest
           cache-from: type=local,src=${{ inputs.shared_cache }}/${{ inputs.shared_cache_key }}
           cache-to: type=local,dest=${{ inputs.shared_cache }}/${{ inputs.shared_cache_key }},mode=max
-
-      - name: Move cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
   
   deploy-to-k8s:
     needs: build-and-push
