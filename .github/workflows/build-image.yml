@@ -18,6 +18,14 @@ on:
       service-name:
         type: string
         required: true  
+      shared_cache:
+        required: false
+        type: string
+        default: /mnt/shared
+      shared_cache_key:
+        required: false
+        type: string
+        default: ${{ inputs.image-name }}
     secrets:
       DOCKER_HOST:
         required: true
@@ -112,8 +120,8 @@ jobs:
           tags: |
             ${{ secrets.DOCKER_HOST}}/${{ inputs.image-name }}:v${{ needs.check-image.outputs.version }}
             ${{ secrets.DOCKER_HOST}}/${{ inputs.image-name }}:latest
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          cache-from: type=local,src=${{ inputs.shared_cache }}/${{ inputs.shared_cache_key }}
+          cache-to: type=local,dest=${{ inputs.shared_cache }}/${{ inputs.shared_cache_key }},mode=max
 
       - name: Move cache
         run: |
