@@ -30,6 +30,10 @@ on:
         required: false
         type: string
         default: self-hosted
+      main-branch:
+        required: false
+        type: string
+        default: main
     secrets:
       DOCKER_HOST:
         required: true
@@ -129,7 +133,7 @@ jobs:
   
   deploy-to-k8s:
     needs: build-and-push
-    if: github.ref == 'refs/heads/main' || github.event.pull_request.base.ref == 'main'
+    if: github.ref == 'refs/heads/${{inputs.main-branch}}' || github.event.pull_request.base.ref == '${{inputs.main-branch}}'
     uses: ./.github/workflows/deploy.yml
     with:
       service-name: ${{ inputs.service-name }}
