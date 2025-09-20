@@ -34,6 +34,9 @@ on:
         required: false
         type: string
         default: main
+      namespace:
+        type: string
+        default: 'default'
     secrets:
       DOCKER_HOST:
         required: true
@@ -139,7 +142,7 @@ jobs:
       service-name: ${{ inputs.service-name }}
       image-name: ${{ inputs.image-name }}
       version: ${{ needs.build-and-push.outputs.version }}
-      namespace: 'default'
+      namespace: ${{ inputs.namespace }}
       manifest-files-path-root: ${{ inputs.manifest-files-path-root }}
     secrets:
       DOCKER_HOST: ${{ secrets.DOCKER_HOST }}
