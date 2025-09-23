@@ -128,6 +128,8 @@ jobs:
           file: ${{ inputs.workdir }}/Dockerfile
           push: true
           ssh: default
+          build-args: |
+            SERVICE_NAME=${{ inputs.service-name }}
           tags: |
             ${{ secrets.DOCKER_HOST}}/${{ inputs.image-name }}:v${{ needs.check-image.outputs.version }}
             ${{ secrets.DOCKER_HOST}}/${{ inputs.image-name }}:latest
