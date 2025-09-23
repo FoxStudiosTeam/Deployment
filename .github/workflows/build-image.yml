@@ -63,7 +63,7 @@ jobs:
       - name: Read version from version.toml
         id: version
         run: |
-          VERSION_FILE="${{ inputs.version_dir }}/version.toml"
+          VERSION_FILE="${{ inputs.version-dir }}/version.toml"
           if [ ! -f "$VERSION_FILE" ]; then
             echo "❌ File $VERSION_FILE not found" >&2
             exit 1
