@@ -28,8 +28,7 @@ on:
         default: ${{ inputs.image-name }}
       version-dir:
         type: string
-        required: false
-        default: ${{ inputs.workdir }}
+        required: true
       runs-on:
         required: false
         type: string
