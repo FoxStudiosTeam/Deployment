@@ -26,6 +26,10 @@ on:
         required: false
         type: string
         default: ${{ inputs.image-name }}
+      version_dir:
+        type: string
+        required: false
+        default: ${{ inputs.workdir }}
       runs-on:
         required: false
         type: string
@@ -56,15 +60,27 @@ jobs:
       exists: ${{ steps.check_image.outputs.exists }}
       version: ${{ steps.check_image.outputs.version }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
       - name: Read version from version.toml
         id: version
         run: |
-          VERSION=$(awk -F'=' '/^version/ {gsub(/\"/, "", $2); print $2}' ${{ inputs.workdir }}/version.toml | tr -d ' ')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          VERSION_FILE="${{ inputs.version_dir }}/version.toml"
+          if [ ! -f "$VERSION_FILE" ]; then
+            echo "❌ File $VERSION_FILE not found" >&2
+            exit 1
+          fi
 
+          VERSION=$(awk -F'=' '/^[[:space:]]*version[[:space:]]*=/ {
+              gsub(/["[:space:]]/, "", $2);
+              print $2
+          }' "$VERSION_FILE")
+
+          if [ -z "$VERSION" ]; then
+            echo "❌ Could not read version from $VERSION_FILE" >&2
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+  
       - name: Check if image exists
         id: check_image
         env:
