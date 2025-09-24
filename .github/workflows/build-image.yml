@@ -26,7 +26,7 @@ on:
         required: false
         type: string
         default: ${{ inputs.image-name }}
-      version-dir:
+      version_path:
         type: string
         required: true
       runs-on:
@@ -62,7 +62,7 @@ jobs:
       - name: Read version from version.toml
         id: version
         run: |
-          VERSION_FILE="${{ inputs.version-dir }}/version.toml"
+          VERSION_FILE="${{ inputs.version_path }}"
           if [ ! -f "$VERSION_FILE" ]; then
             echo "❌ File $VERSION_FILE not found" >&2
             exit 1
@@ -110,7 +110,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
+      
       - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
