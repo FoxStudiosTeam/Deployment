@@ -94,7 +94,7 @@ jobs:
           kubectl apply -f "${{ inputs.manifest-files-path-root }}" --namespace=${{ inputs.namespace }}
 
       - name: Restart deployment
-        if: ${{ inputs.restart-deployment == 'true' }}
+        if: ${{ inputs.restart-deployment }}
         run: kubectl rollout restart deployment/${{ inputs.service-name }}-deployment --namespace=${{ inputs.namespace }}
 
       - name: Wait for rollout
