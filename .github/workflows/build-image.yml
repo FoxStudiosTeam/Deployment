@@ -40,6 +40,10 @@ on:
       namespace:
         type: string
         default: 'default'
+      restart-deployment:
+        type: boolean
+        required: false
+        default: false
     secrets:
       DOCKER_HOST:
         required: true
@@ -161,6 +165,7 @@ jobs:
       version: ${{ needs.build-and-push.outputs.version }}
       namespace: ${{ inputs.namespace }}
       manifest-files-path-root: ${{ inputs.manifest-files-path-root }}
+      restart-deployment: ${{ inputs.restart-deployment }}
     secrets:
       DOCKER_HOST: ${{ secrets.DOCKER_HOST }}
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}

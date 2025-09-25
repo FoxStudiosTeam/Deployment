@@ -18,6 +18,10 @@ on:
       service-name:
         type: string
         required: true  
+      restart-deployment:
+        type: boolean
+        required: false
+        default: false
     secrets:
       DOCKER_HOST:
         required: true
@@ -88,6 +92,10 @@ jobs:
         run: |
           echo "Applying manifests from directory: ${{ inputs.manifest-files-path-root }}"
           kubectl apply -f "${{ inputs.manifest-files-path-root }}" --namespace=${{ inputs.namespace }}
+
+      - name: Restart deployment
+        if: ${{ inputs.restart-deployment == 'true' }}
+        run: kubectl rollout restart deployment/${{ inputs.service-name }}-deployment --namespace=${{ inputs.namespace }}
 
       - name: Wait for rollout
         continue-on-error: true
