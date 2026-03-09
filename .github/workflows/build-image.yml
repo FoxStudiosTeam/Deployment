@@ -63,6 +63,9 @@ jobs:
       exists: ${{ steps.check_image.outputs.exists }}
       version: ${{ steps.check_image.outputs.version }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Read version from version.toml
         id: version
         run: |
