@@ -61,7 +61,9 @@ jobs:
           chmod 600 ~/.kube/config
           kubectl cluster-info
           kubectl get nodes
-
+      - name: Setup Namespace
+        run: |
+          kubectl config set-context --current --namespace=${{ inputs.namespace }}
       - name: Create or update registry secret in Kubernetes
         run: |
           kubectl delete secret registry-secret --namespace=${{ inputs.namespace }} --ignore-not-found
