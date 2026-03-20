@@ -1,4 +1,4 @@
-name: Build and Push Docker Image Into Private Registry
+name: Build Docker Image
 
 on:
   workflow_call:
@@ -11,13 +11,7 @@ on:
         required: true
       context:
         type: string
-        required: true  
-      manifest-files-path-root:
-        type: string
         required: true
-      service-name:
-        type: string
-        required: true  
       shared_cache:
         required: false
         type: string
@@ -33,25 +27,12 @@ on:
         required: false
         type: string
         default: self-hosted
-      main-branch:
-        required: false
-        type: string
-        default: main
-      namespace:
-        type: string
-        default: 'default'
-      restart-deployment:
-        type: boolean
-        required: false
-        default: false
     secrets:
       DOCKER_HOST:
         required: true
       DOCKER_USERNAME:
         required: true
       DOCKER_PASSWORD:
-        required: true
-      KUBECONFIG:
         required: true
       SSH_KEY:
         required: true
@@ -63,8 +44,7 @@ jobs:
       exists: ${{ steps.check_image.outputs.exists }}
       version: ${{ steps.check_image.outputs.version }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Read version from version.toml
         id: version
@@ -74,19 +54,13 @@ jobs:
             echo "❌ File $VERSION_FILE not found" >&2
             exit 1
           fi
-
-          VERSION=$(awk -F'=' '/^[[:space:]]*version[[:space:]]*=/ {
-              gsub(/["[:space:]]/, "", $2);
-              print $2
-          }' "$VERSION_FILE")
-
+          VERSION=$(awk -F'=' '/^[[:space:]]*version[[:space:]]*=/ { gsub(/["[:space:]]/, "", $2); print $2 }' "$VERSION_FILE")
           if [ -z "$VERSION" ]; then
             echo "❌ Could not read version from $VERSION_FILE" >&2
             exit 1
           fi
-
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-  
+
       - name: Check if image exists
         id: check_image
         env:
@@ -95,7 +69,7 @@ jobs:
           TAG=v$VERSION
           IMAGE=${{ inputs.image-name }}
           REGISTRY=${{ secrets.DOCKER_HOST }}
-          
+
           echo "Logging into Docker registry $REGISTRY"
           echo ${{ secrets.DOCKER_PASSWORD }} | docker login $REGISTRY -u ${{ secrets.DOCKER_USERNAME }} --password-stdin
 
@@ -112,12 +86,10 @@ jobs:
     if: needs.check-image.outputs.exists == 'false'
     runs-on: ${{ inputs.runs-on }}
     outputs:
-          version: ${{ needs.check-image.outputs.version }}
-
+      version: ${{ needs.check-image.outputs.version }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      
+      - uses: actions/checkout@v3
+
       - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
@@ -126,24 +98,20 @@ jobs:
           ssh-keyscan github.com >> ~/.ssh/known_hosts
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_KEY }}
-      
-      - name: Set up SSH agent
-        uses: webfactory/ssh-agent@v0.9.0
+
+      - uses: webfactory/ssh-agent@v0.9.0
         with:
           ssh-private-key: ${{ secrets.SSH_KEY }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+      - uses: docker/setup-buildx-action@v2
 
-      - name: Log in to private Docker registry
-        uses: docker/login-action@v2
+      - uses: docker/login-action@v2
         with:
           registry: ${{ secrets.DOCKER_HOST }}
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build and push Docker image
-        id: build-and-push
         uses: docker/build-push-action@v5
         with:
           context: ${{ inputs.context }}
@@ -151,26 +119,9 @@ jobs:
           push: true
           ssh: default
           build-args: |
-            SERVICE_NAME=${{ inputs.service-name }}
+            SERVICE_NAME=${{ inputs.image-name }}
           tags: |
             ${{ secrets.DOCKER_HOST}}/${{ inputs.image-name }}:v${{ needs.check-image.outputs.version }}
             ${{ secrets.DOCKER_HOST}}/${{ inputs.image-name }}:latest
           cache-from: type=local,src=${{ inputs.shared_cache }}/${{ inputs.shared_cache_key }}
           cache-to: type=local,dest=${{ inputs.shared_cache }}/${{ inputs.shared_cache_key }},mode=max
-  
-  deploy-to-k8s:
-    needs: build-and-push
-    if: github.ref == 'refs/heads/${{inputs.main-branch}}' || github.event.pull_request.base.ref == '${{inputs.main-branch}}'
-    uses: ./.github/workflows/deploy.yml
-    with:
-      service-name: ${{ inputs.service-name }}
-      image-name: ${{ inputs.image-name }}
-      version: ${{ needs.build-and-push.outputs.version }}
-      namespace: ${{ inputs.namespace }}
-      manifest-files-path-root: ${{ inputs.manifest-files-path-root }}
-      restart-deployment: ${{ inputs.restart-deployment }}
-    secrets:
-      DOCKER_HOST: ${{ secrets.DOCKER_HOST }}
-      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-      KUBECONFIG: ${{ secrets.KUBECONFIG }}

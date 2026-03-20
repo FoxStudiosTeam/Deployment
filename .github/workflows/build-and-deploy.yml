@@ -1,0 +1,81 @@
+# build-and-deploy.yml
+name: Build and Deploy Docker Image
+
+on:
+  workflow_call:
+    inputs:
+      image-name:
+        type: string
+        required: true
+      workdir:
+        type: string
+        required: true
+      context:
+        type: string
+        required: true
+      manifest-files-path-root:
+        type: string
+        required: true
+      service-name:
+        type: string
+        required: true
+      namespace:
+        type: string
+        default: 'default'
+      restart-deployment:
+        type: boolean
+        required: false
+        default: false
+      version_path:
+        type: string
+        required: true
+      runs-on:
+        required: false
+        type: string
+        default: self-hosted
+      main-branch:
+        required: false
+        type: string
+        default: main
+    secrets:
+      DOCKER_HOST:
+        required: true
+      DOCKER_USERNAME:
+        required: true
+      DOCKER_PASSWORD:
+        required: true
+      KUBECONFIG:
+        required: true
+      SSH_KEY:
+        required: true
+
+jobs:
+  build-image:
+    uses: ./.github/workflows/build-image.yml
+    with:
+      image-name: ${{ inputs.image-name }}
+      workdir: ${{ inputs.workdir }}
+      context: ${{ inputs.context }}
+      version_path: ${{ inputs.version_path }}
+    secrets:
+      DOCKER_HOST: ${{ secrets.DOCKER_HOST }}
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+      SSH_KEY: ${{ secrets.SSH_KEY }}
+
+  deploy:
+    needs: build-image
+    if: github.ref == 'refs/heads/${{ inputs.main-branch }}' || github.event.pull_request.base.ref == '${{ inputs.main-branch }}'
+    uses: ./.github/workflows/deploy.yml
+    with:
+      service-name: ${{ inputs.service-name }}
+      image-name: ${{ inputs.image-name }}
+      version: ${{ needs.build-image.outputs.version }}
+      namespace: ${{ inputs.namespace }}
+      manifest-files-path-root: ${{ inputs.manifest-files-path-root }}
+      restart-deployment: ${{ inputs.restart-deployment }}
+    secrets:
+      DOCKER_HOST: ${{ secrets.DOCKER_HOST }}
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+      KUBECONFIG: ${{ secrets.KUBECONFIG }}
